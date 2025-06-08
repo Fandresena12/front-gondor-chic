@@ -7,7 +7,7 @@ module.exports = {
         primary: "#f1dbc8",
         secondary: "#453F3A",
         text: "#4B3F39",
-        red: "#BF2B2B"
+        red: "#BF2B2B",
       },
       fontFamily: {
         serif: ["var(--font-hylia-serif)", "serif"],

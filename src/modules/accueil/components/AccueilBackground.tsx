@@ -7,7 +7,7 @@ const AccueilBackground = () => {
         <Image
           src="/assets/carte.png"
           alt="Carte de la Terre du Milieu"
-          className="carte absolute z-0 right-0 top-0 w-auto h-[110vh] opacity-30"
+          className="carte absolute z-0 right-0 top-0 w-auto h-[120vh] opacity-30"
           width={900}
           height={1000}
           priority
