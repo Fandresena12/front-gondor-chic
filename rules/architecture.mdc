@@ -1,0 +1,201 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 📐 ARCHITECTURE STANDARDISÉE — NEXT.JS 14 (FULL FRONTEND API)
+
+### 🎯 Objectif
+
+Créer une architecture **claire, maintenable, modulaire et évolutive**, totalement compatible avec **les Server Components** de Next.js 14, et conforme à des **bonnes pratiques strictes de découplage et de responsabilité unique**.
+
+---
+
+## 🔰 RÈGLES FONDAMENTALES
+
+1. **Les appels API se font uniquement :**
+
+   * Dans les fichiers `services/*.ts` ou directement dans les **Server Components** (`containers/`, `page.tsx`)
+   * **Interdiction absolue** de faire des appels API dans les composants React (`components/`)
+
+2. **Tout composant a un parent "root" (container)** :
+
+   * `containers/` = Composant racine (charge les données, transforme les données, appelle les services)
+   * `components/` = Composant UI pur, reçoit ses props depuis son parent, **aucune logique métier**
+
+3. **Tous les fichiers partagés ou réutilisables sont regroupés dans `shared/`**
+
+4. **Chaque domaine fonctionnel (auth, blog, dashboard, etc.) est un module indépendant** situé dans `modules/`, avec sa propre organisation interne.
+
+5. **Aucun mélange entre les fichiers d’un module et ceux d’un autre.**
+
+---
+
+## 🧭 STRUCTURE GLOBALE DE `src/`
+
+```
+src/
+│
+├── app/                # App Router (pages, layouts)
+│
+├── modules/            # Modules métier, séparés et isolés
+│
+├── shared/             # Code partagé entre modules (UI, helpers, etc.)
+│
+├── lib/                # Fonctions bas niveau et accès système (cookies, session, cache)
+```
+
+---
+
+## 📁 `app/` — ROUTING NEXT.JS
+
+> Dossier obligatoire dans App Router. Gère le routage, le layout, l’arborescence des pages.
+
+### Contenu autorisé :
+
+* `page.tsx` : fichier route
+* `layout.tsx` : layout global ou local
+* `template.tsx` : si rendu dynamique
+* Peut contenir directement des `containers/` pour charger les données
+* Peut appeler des `services/` (ex. `getUser()`)
+
+### Exemple :
+
+```bash
+app/
+└── (auth)/
+    └── login/
+        └── page.tsx          # Appelle <LoginContainer /> du module auth
+```
+
+---
+
+## 📁 `modules/` — MODULES MÉTIERS
+
+> Chaque fonctionnalité/domaine métier a son propre dossier. Aucun fichier d’un module ne doit être utilisé dans un autre module (sauf via `shared/`).
+
+### Structure interne de chaque module :
+
+```
+modules/
+└── [nom-du-module]/
+    ├── components/       # Composants UI visuels, reçoivent uniquement des props
+    ├── containers/       # Composants Server Components (chargent les données)
+    ├── services/         # Fonctions d’appel API / base de données
+    └── types/            # Types TypeScript liés à ce module
+```
+
+### Règles :
+
+* `containers/` peut appeler les services de son propre module
+* `components/` ne doit JAMAIS appeler une API ou un service
+* Le `Container.tsx` fait le lien entre la page et le composant visuel
+
+### Exemple pour `auth` :
+
+```bash
+modules/
+└── auth/
+    ├── components/
+    │   └── LoginForm.tsx
+    ├── containers/
+    │   └── LoginContainer.tsx
+    ├── services/
+    │   └── login.service.ts
+    └── types/
+        └── auth.types.ts
+```
+
+---
+
+## 📁 `shared/` — CODE GLOBAL PARTAGÉ
+
+> Contient tout ce qui est réutilisable par **n’importe quel module**.
+
+### Sous-dossiers :
+
+| Dossier       | Contenu attendu                                         |
+| ------------- | ------------------------------------------------------- |
+| `components/` | Composants UI partagés (ex: `Button`, `Modal`, `Input`) |
+| `constants/`  | Constantes globales (ex: rôles, URLs, configs)          |
+| `helpers/`    | Fonctions utilitaires (ex: formatage de date)           |
+| `styles/`     | Styles globaux, Tailwind config, CSS modules            |
+| `fonts/`      | Importation et définition des polices                   |
+| `types/`      | Types globaux (ex: `ApiResponse`, `WithId`)             |
+
+### Exemple :
+
+```bash
+shared/
+├── components/
+│   └── Button.tsx
+├── constants/
+│   └── roles.ts
+├── helpers/
+│   └── formatDate.ts
+├── styles/
+│   └── globals.css
+├── fonts/
+│   └── inter.ts
+└── types/
+    └── global.types.ts
+```
+
+---
+
+## 📁 `lib/` — OUTILS TECHNIQUES BAS NIVEAU
+
+> Contient la logique technique réutilisable : cookies, session, cache, fetcher, middlewares.
+
+### Exemples de fichiers :
+
+* `auth.ts` : extraction du token utilisateur
+* `cookies.ts` : manipulation cookies
+* `fetcher.ts` : client fetch standardisé
+* `cache.ts` : utils pour le caching
+* `middleware.ts` : middlewares pour auth ou logging
+
+---
+
+## 🔄 FLUX STANDARD : ROUTE → CONTAINER → COMPONENT → SERVICE
+
+### Exemple de flow (login) :
+
+```tsx
+// app/(auth)/login/page.tsx
+export default function LoginPage() {
+  return <LoginContainer />
+}
+
+// modules/auth/containers/LoginContainer.tsx
+export default async function LoginContainer() {
+  const user = await loginService()
+  return <LoginForm user={user} />
+}
+
+// modules/auth/components/LoginForm.tsx
+export default function LoginForm({ user }: { user: User }) {
+  return <div>Hello {user.name}</div>
+}
+```
+
+---
+
+## ✅ INTERDICTIONS ABSOLUES
+
+* ❌ Appeler une API directement depuis un composant UI (`components/`)
+* ❌ Importer un composant d’un module dans un autre module (hors `shared`)
+* ❌ Mettre de la logique métier dans `shared/components/`
+
+---
+
+## ✅ BONNES PRATIQUES OBLIGATOIRES
+
+* ✅ Centraliser tous les appels API dans les `services/`
+* ✅ Utiliser `types/` dans chaque module pour garder les types isolés
+* ✅ Préférer les Server Components (`async`) dans `containers/` et `pages/`
+* ✅ Ne rien dupliquer entre modules → placer dans `shared/` si besoin
+* ✅ Organiser les modules métiers en silo avec séparation stricte des responsabilités
+
+
+
